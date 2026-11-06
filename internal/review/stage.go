@@ -8,6 +8,7 @@ import (
 	"slices"
 	"strings"
 
+	"github.com/Gaurav-Gosain/tuios/internal/arc"
 	"github.com/Gaurav-Gosain/tuios/internal/childproc"
 	"github.com/Gaurav-Gosain/tuios/internal/worktree"
 )
@@ -62,6 +63,16 @@ func headTree(ctx context.Context, dir string) (string, error) {
 // unstaged diff (index to working state) or the staged diff (HEAD to index).
 // Base.Name is "index" or "HEAD", and Base.SHA is a tree.
 func IndexOptions(ctx context.Context, dir, mode string) (Options, error) {
+	if _, ok := arc.Locate(dir); ok {
+		switch mode {
+		case IndexUnstaged:
+			return Options{Dir: dir, Index: mode, Base: Base{Name: "index", From: "index"}}, nil
+		case IndexStaged:
+			return Options{Dir: dir, Index: mode, Base: Base{Name: "HEAD", From: "index"}}, nil
+		default:
+			return Options{}, fmt.Errorf("unknown Arc index mode %q", mode)
+		}
+	}
 	index, err := IndexTree(ctx, dir)
 	if err != nil {
 		return Options{}, err
@@ -91,6 +102,14 @@ func IndexChange(ctx context.Context, dir, mode, path string, context int, maxUn
 	opt, err := IndexOptions(ctx, dir, mode)
 	if err != nil {
 		return nil, err
+	}
+	if opt.Index != "" {
+		opt.Paths, opt.Context, opt.MaxUntracked = []string{path}, context, maxUntracked
+		d, err := Build(ctx, opt)
+		if err != nil {
+			return nil, err
+		}
+		return d.FileByPath(path), nil
 	}
 	tree := opt.Tree
 	if tree == "" {

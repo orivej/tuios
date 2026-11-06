@@ -69,7 +69,11 @@ func buildArc(ctx context.Context, opt Options) (*Diff, error) {
 	if lim.Files <= 0 {
 		lim = DefaultLimits
 	}
-	entries, err := arc.DiffNames(ctx, opt.Dir, opt.Base.SHA)
+	var flags []string
+	if opt.Index == IndexStaged {
+		flags = append(flags, "--cached")
+	}
+	entries, err := arc.DiffNames(ctx, opt.Dir, opt.Base.SHA, flags...)
 	if err != nil {
 		return nil, err
 	}
@@ -108,6 +112,9 @@ func buildArc(ctx context.Context, opt Options) (*Diff, error) {
 		remaining -= used
 	}
 	for _, entry := range status["untracked"] {
+		if opt.Index == IndexStaged {
+			break
+		}
 		if err := ValidPath(entry.Path); err != nil {
 			return nil, fmt.Errorf("arc status path: %w", err)
 		}
@@ -154,7 +161,12 @@ func (r *arcDiffReader) Read(p []byte) (int, error) {
 func streamArcFiles(ctx context.Context, opt Options, files []File, lim Limits) (int, error) {
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
-	args := []string{"diff", "--git", "--no-color", "--unified", strconv.Itoa(max(opt.Context, 0)), opt.Base.SHA}
+	args := []string{"diff", "--git", "--no-color", "--unified", strconv.Itoa(max(opt.Context, 0))}
+	if opt.Index == IndexStaged {
+		args = append(args, "--cached")
+	} else if opt.Base.SHA != "" {
+		args = append(args, opt.Base.SHA)
+	}
 	if len(opt.Paths) > 0 {
 		args = append(args, "--")
 		args = append(args, opt.Paths...)

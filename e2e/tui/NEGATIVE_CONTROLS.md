@@ -11277,3 +11277,18 @@ Run on 2026-10-31 on Linux against builds from this branch, on `0e1679cfb`. Each
 | `ckStageTitle(r.group)` in `drawFoldFocus` becomes `ckStageTitle(0)`, so there is no crash and the title is wrong | "the focus title is \"   Todo  1\", want Done and its count" | **caught** |
 
 The frame is `task-board-done-focus-200x55` under `TUIOS_E2E_FRAMES`, in the test's folder. Repeat from `e2e/tui` with `TUIOS_E2E=1 TUIOS_E2E_BIN=/path/to/tuios go test -count=1 -run '^TestTaskBoardGroupsCardsByStage$' -v .`.
+
+## Arc hunk staging (2026-11-06)
+
+`TestArcReviewStageHunks` creates a private Arc mount and checks stage/unstage,
+selected lines, new and deleted files, CRLF and a missing final newline. It
+compares the exact index content and verifies working files stay unchanged.
+It also presses stage and unstage in the review overlay. Artifacts include
+`arc-staging.txt` and `arc-review-staged-hunk`.
+
+The pre-change binary failed at the first index read:
+`index unstaged: invalid_params Arc review shows changes against a base; index views are not supported`.
+Run from `e2e/tui` with `TUIOS_E2E=1 TUIOS_E2E_BIN=/path/to/tuios
+TUIOS_E2E_ARC_SOURCE=/path/to/existing/arc/mount go test -count=1
+-run '^TestArcReviewStageHunks$' -timeout 6m .` (environment assignments and
+command on one line). The source mount is read only; writes use the private mount.

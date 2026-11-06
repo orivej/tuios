@@ -237,9 +237,6 @@ func (d *Daemon) verbReviewDiff(cs *connState, params json.RawMessage) (any, *ve
 	if verr != nil {
 		return nil, verr
 	}
-	if repo.vcs == "arc" && p.Index != "" {
-		return nil, invalidParam("index", "Arc review shows changes against a base; index views are not supported")
-	}
 
 	ctx, cancel := context.WithTimeout(d.ctx, reviewTimeout)
 	defer cancel()

@@ -11,6 +11,7 @@ import (
 	"strconv"
 	"sync"
 
+	"github.com/Gaurav-Gosain/tuios/internal/arc"
 	"github.com/Gaurav-Gosain/tuios/internal/review"
 )
 
@@ -139,8 +140,8 @@ func (d *Daemon) verbReviewStage(cs *connState, params json.RawMessage) (any, *v
 	if verr != nil {
 		return nil, verr
 	}
-	if repo.vcs == "arc" {
-		return nil, invalidParam("action", "Arc review supports notes; stage and unstage changes with the Arc CLI")
+	if repo.vcs == "arc" && p.Action == "undo" {
+		return nil, invalidParam("action", "Arc staging supports stage and unstage, but not undo")
 	}
 	if _, verr := d.reviewAuthorOf(cs, p.HumanNonce, sess.ID, "review-stage"); verr != nil {
 		return nil, verr
@@ -176,6 +177,10 @@ func (d *Daemon) verbReviewStage(cs *connState, params json.RawMessage) (any, *v
 	if verr != nil {
 		return nil, verr
 	}
+	var undoResult any
+	if len(undo.Entries) > 0 {
+		undoResult = undo
+	}
 	return map[string]any{
 		"type":     "review_stage",
 		"session":  sess.Name(),
@@ -183,7 +188,7 @@ func (d *Daemon) verbReviewStage(cs *connState, params json.RawMessage) (any, *v
 		"worktree": repo.root,
 		"path":     named,
 		"action":   p.Action,
-		"undo":     undo,
+		"undo":     undoResult,
 	}, nil
 }
 
@@ -227,9 +232,13 @@ func reviewStageChange(ctx context.Context, root string, p reviewStageParams, co
 	if f.OldPath != "" {
 		paths = append(paths, f.OldPath)
 	}
-	before, err := review.IndexEntries(ctx, root, paths)
-	if err != nil {
-		return reviewUndo{}, reviewStageGitFailed(err)
+	_, isArc := arc.Locate(root)
+	var before []review.IndexEntry
+	if !isArc {
+		before, err = review.IndexEntries(ctx, root, paths)
+		if err != nil {
+			return reviewUndo{}, reviewStageGitFailed(err)
+		}
 	}
 
 	whole := p.Hunk == ""
@@ -269,7 +278,7 @@ func reviewStageChange(ctx context.Context, root string, p reviewStageParams, co
 		// selection of every line of a file the index side drops (a
 		// deletion to stage, an addition to unstage) is the whole file.
 		drops := (!unstage && f.Status == review.StatusDeleted) || (unstage && f.Status == review.StatusAdded)
-		if drops && len(f.Hunks) == 1 && reviewSelectsAll(h, sel) {
+		if (drops || (isArc && unstage)) && len(f.Hunks) == 1 && reviewSelectsAll(h, sel) {
 			whole = true
 		} else {
 			var err error
@@ -277,6 +286,12 @@ func reviewStageChange(ctx context.Context, root string, p reviewStageParams, co
 				return reviewUndo{}, invalidParam("lines", err.Error())
 			}
 		}
+	}
+	if isArc {
+		if err := review.ApplyArcToIndex(ctx, root, f, patch, unstage, whole); err != nil {
+			return reviewUndo{}, reviewStageGitFailed(err)
+		}
+		return reviewUndo{}, nil
 	}
 	if whole {
 		if unstage {

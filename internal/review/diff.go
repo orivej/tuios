@@ -13,7 +13,6 @@ import (
 
 	"github.com/Gaurav-Gosain/tuios/internal/arc"
 	"github.com/Gaurav-Gosain/tuios/internal/childproc"
-
 	"github.com/Gaurav-Gosain/tuios/internal/worktree"
 )
 
@@ -130,6 +129,10 @@ func ResolveBase(ctx context.Context, dir, requested, recorded string, uncommitt
 
 // Options say what Build reads.
 type Options struct {
+	// Index selects Arc's staged or unstaged diff instead of a base diff.
+	// Empty ("") uses Base; IndexUnstaged ("unstaged") compares working files
+	// to the index; IndexStaged ("staged") compares the index to HEAD.
+	Index string
 	// Dir is the worktree whose working state is the new side.
 	Dir string
 	// Base is the old side, from ResolveBase. Ignored with AgainstDir.

@@ -4374,8 +4374,10 @@ empty `tree_sha`: Arc diffs the current working files without creating a Git
 snapshot. A managed mount defaults to its recorded starting commit; another
 mount defaults to the merge base with Arc's configured default branch. Explicit
 `base` and `uncommitted` work as above. Arc reports renames as additions and
-deletions. `index`, `against`, `review-stage`, shipping, checkpoints, fan-outs
-and worktree transfer currently require Git. Removing a managed Arc mount
+deletions. `index` and `review-stage` support Arc, including hunks and selected
+lines, using `arc add -F` without changing working files. Arc stage responses
+return `undo: null`; the `undo` action is not supported. `against`, shipping,
+checkpoints, fan-outs and worktree transfer currently require Git. Removing a managed Arc mount
 retains the Arc store and reports `store_kept: true`, its `store` path, and
 `branch_kept: true`; pane processes stop before unmounting even with
 `keep_session`. No recursive directory removal is performed.

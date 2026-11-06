@@ -2725,8 +2725,10 @@ commit as the base; another Arc mount uses the merge base with the default
 branch reported by `arc info --mount --json`. `--base` and `--uncommitted`
 override that choice. The diff includes committed, staged, unstaged and
 untracked changes without staging files. Arc currently reports renames as
-added and deleted paths. Arc review does not support index views, staging,
-checkpoint diffs or comparisons between mounts.
+added and deleted paths. Arc supports staged and unstaged index views and
+staging or unstaging files, hunks and selected lines. Partial changes use
+`arc add -F` and leave working files untouched. Undo of staging, checkpoint
+diffs and comparisons between mounts are not supported for Arc.
 
 **Usage:**
 ```bash

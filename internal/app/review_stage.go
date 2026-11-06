@@ -331,14 +331,14 @@ func (m *OS) reviewStageCmd(params map[string]any, hunk *review.Hunk, done strin
 		}
 		raw, err := call("review-stage", params, reviewVerbTimeout)
 		var res struct {
-			Undo reviewUndo `json:"undo"`
+			Undo *reviewUndo `json:"undo"`
 		}
 		if err == nil {
 			err = json.Unmarshal(raw, &res)
 		}
 		msg.Err = err
-		if err == nil {
-			msg.Step = &reviewUndoStep{session: sess, window: win, undo: res.Undo}
+		if err == nil && res.Undo != nil {
+			msg.Step = &reviewUndoStep{session: sess, window: win, undo: *res.Undo}
 		}
 		return msg
 	}
@@ -387,7 +387,7 @@ func (m *OS) applyReviewStaged(msg ReviewStagedMsg) tea.Cmd {
 		text = "Nothing in this hunk is on that side of the index"
 	case msg.Err != nil:
 		text = "Nothing changed: " + reviewErrorText(msg.Err)
-	case !undo:
+	case !undo && msg.Step != nil:
 		if key := m.reviewKey(config.ActionReviewUndoStage); key != "" {
 			text += ". " + key + " undoes it"
 		}

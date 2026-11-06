@@ -112,6 +112,18 @@ func (u *unifiedReader) line(raw string) bool {
 
 	if !u.inHunk {
 		switch {
+		case strings.HasPrefix(text, "old mode "):
+			u.cur.oldMode = strings.TrimPrefix(text, "old mode ")
+		case strings.HasPrefix(text, "new mode "):
+			u.cur.newMode = strings.TrimPrefix(text, "new mode ")
+		case strings.HasPrefix(text, "new file mode "):
+			u.cur.newMode = strings.TrimPrefix(text, "new file mode ")
+		case strings.HasPrefix(text, "deleted file mode "):
+			u.cur.oldMode = strings.TrimPrefix(text, "deleted file mode ")
+		case strings.HasPrefix(text, "index "):
+			if fields := strings.Fields(text); len(fields) == 3 {
+				u.cur.oldMode, u.cur.newMode = fields[2], fields[2]
+			}
 		case strings.HasPrefix(text, "@@ "):
 			os, ol, ns, nl, err := ParseHunkHeader(text)
 			if err != nil {

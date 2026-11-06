@@ -119,8 +119,12 @@ func Changed(status map[string][]Entry) int {
 }
 
 // DiffNames lists tracked paths that differ from base in the current files.
-func DiffNames(ctx context.Context, dir, base string) ([]Entry, error) {
-	out, err := Run(ctx, dir, "diff", "--name-status", "--json", base)
+func DiffNames(ctx context.Context, dir, base string, options ...string) ([]Entry, error) {
+	args := []string{"diff", "--name-status", "--json"}
+	if base != "" {
+		args = append(args, base)
+	}
+	out, err := Run(ctx, dir, append(args, options...)...)
 	if err != nil {
 		return nil, err
 	}
